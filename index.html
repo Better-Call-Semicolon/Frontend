@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Movable 3D Avatar</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<main>
+		<section class="avatar-demo">
+			<div class="intro">
+				<p class="eyebrow">Interactive character</p>
+				<h1>Move the avatar's hands</h1>
+				<p>Drag either hand, use the sliders, or try a pose.</p>
+			</div>
+
+			<div class="avatar-stage">
+				<div class="avatar" aria-label="3D avatar with movable hands">
+					<div class="avatar__head">
+						<div class="avatar__hair"></div>
+						<div class="avatar__eye avatar__eye--left"></div>
+						<div class="avatar__eye avatar__eye--right"></div>
+						<div class="avatar__nose"></div>
+						<div class="avatar__mouth"></div>
+					</div>
+					<div class="avatar__body"></div>
+					<div class="avatar__arm avatar__arm--left"></div>
+					<div class="avatar__arm avatar__arm--right"></div>
+					<button class="avatar__hand avatar__hand--left" type="button" aria-label="Drag left hand"></button>
+					<button class="avatar__hand avatar__hand--right" type="button" aria-label="Drag right hand"></button>
+				</div>
+			</div>
+
+			<div class="controls" aria-label="Avatar hand controls">
+				<label>
+					<span>Left hand</span>
+					<input type="range" id="left-hand" min="-55" max="55" value="22">
+				</label>
+				<label>
+					<span>Right hand</span>
+					<input type="range" id="right-hand" min="-55" max="55" value="-22">
+				</label>
+				<div class="pose-buttons">
+					<button type="button" data-pose="wave">Wave</button>
+					<button type="button" data-pose="cheer">Cheer</button>
+					<button type="button" data-pose="reset">Reset</button>
+				</div>
+			</div>
+		</section>
+	</main>
+	<script>
+		const avatar = document.querySelector(".avatar");
+		const hands = {
+			left: document.querySelector(".avatar__hand--left"),
+			right: document.querySelector(".avatar__hand--right")
+		};
+		const sliders = {
+			left: document.querySelector("#left-hand"),
+			right: document.querySelector("#right-hand")
+		};
+		const baseRotation = { left: 22, right: -22 };
+		let dragging = null;
+
+		function setHand(side, rotation) {
+			const value = Math.max(-55, Math.min(55, rotation));
+			hands[side].style.setProperty("--hand-rotation", `${value}deg`);
+			sliders[side].value = value;
+		}
+
+		Object.keys(sliders).forEach((side) => {
+			sliders[side].addEventListener("input", () => setHand(side, Number(sliders[side].value)));
+			setHand(side, baseRotation[side]);
+		});
+
+		Object.values(hands).forEach((hand) => {
+			hand.addEventListener("pointerdown", (event) => {
+				dragging = { hand, startX: event.clientX, startRotation: Number.parseFloat(getComputedStyle(hand).getPropertyValue("--hand-rotation")) || 0 };
+				hand.setPointerCapture(event.pointerId);
+				hand.classList.add("is-dragging");
+			});
+			hand.addEventListener("pointermove", (event) => {
+				if (!dragging || dragging.hand !== hand) return;
+				const side = hand.classList.contains("avatar__hand--left") ? "left" : "right";
+				const direction = side === "left" ? 1 : -1;
+				setHand(side, dragging.startRotation + (event.clientX - dragging.startX) * direction);
+			});
+			hand.addEventListener("pointerup", () => {
+				dragging = null;
+				hand.classList.remove("is-dragging");
+			});
+		});
+
+		document.querySelectorAll("[data-pose]").forEach((button) => {
+			button.addEventListener("click", () => {
+				const pose = button.dataset.pose;
+				const values = pose === "wave" ? { left: -42, right: 35 } : pose === "cheer" ? { left: -50, right: 50 } : baseRotation;
+				Object.entries(values).forEach(([side, value]) => setHand(side, value));
+				avatar.classList.toggle("is-waving", pose === "wave");
+			});
+		});
+	</script>
+</body>
+</html>
